@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Buffer Insertion Lab — 緩衝器插入實驗室</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0e14;
+  --panel:#10161f;
+  --panel2:#141c28;
+  --border:#232d3d;
+  --grid:#161f2c;
+  --trace:#ffb454;
+  --trace-dim:#8a6a35;
+  --green:#39ff8a;
+  --green-dim:#1f7a4a;
+  --red:#ff5f56;
+  --red-dim:#8c3230;
+  --blue:#5ec8f2;
+  --text:#e8edf4;
+  --text-dim:#8592a6;
+  --text-faint:#4d5868;
+  --amber-bg:rgba(255,180,84,0.1);
+  --green-bg:rgba(57,255,138,0.08);
+  --red-bg:rgba(255,95,86,0.08);
+}
+*{box-sizing:border-box;}
+body{
+  margin:0;
+  background:
+    linear-gradient(var(--grid) 1px,transparent 1px) 0 0/40px 40px,
+    linear-gradient(90deg,var(--grid) 1px,transparent 1px) 0 0/40px 40px,
+    var(--bg);
+  color:var(--text);
+  font-family:'Noto Sans TC','IBM Plex Mono',monospace;
+  padding:0;
+}
+.app{max-width:920px;margin:0 auto;padding:28px 20px 60px;}
+.mono{font-family:'IBM Plex Mono',monospace;}
+.disp{font-family:'Space Grotesk','Noto Sans TC',sans-serif;}
+
+.hero{display:flex;flex-wrap:wrap;gap:24px;align-items:center;border-bottom:1px solid var(--border);padding-bottom:22px;margin-bottom:26px;}
+.hero-text{flex:1;min-width:240px;}
+.eyebrow{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.14em;color:var(--trace);text-transform:uppercase;margin:0 0 8px;}
+.hero h1{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:28px;margin:0 0 8px;line-height:1.25;}
+.hero p{color:var(--text-dim);font-size:13.5px;line-height:1.7;margin:0;max-width:46ch;}
+.hero-scope{width:220px;height:100px;background:var(--panel);border:1px solid var(--border);border-radius:4px;flex-shrink:0;}
+
+.tabs{display:flex;gap:6px;margin-bottom:22px;border-bottom:1px solid var(--border);}
+.tab{
+  flex:1;background:none;border:none;color:var(--text-faint);
+  font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.03em;
+  padding:12px 6px 14px;cursor:pointer;border-bottom:2px solid transparent;
+  display:flex;flex-direction:column;gap:3px;align-items:center;text-align:center;
+}
+.tab .num{font-size:10px;color:var(--text-faint);}
+.tab .lbl{font-family:'Noto Sans TC',sans-serif;font-size:13px;color:var(--text-dim);}
+.tab.active{border-bottom-color:var(--trace);}
+.tab.active .lbl{color:var(--trace);}
+.tab.active .num{color:var(--trace);}
+.tab:hover .lbl{color:var(--text);}
+
+.level{display:none;}
+.level.active{display:block;animation:fadein .25s ease;}
+@keyframes fadein{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+.level-head{margin-bottom:18px;}
+.level-head h2{font-family:'Space Grotesk',sans-serif;font-size:19px;font-weight:600;margin:0 0 6px;}
+.level-head .sub{color:var(--text-dim);font-size:13px;line-height:1.65;}
+
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+@media(max-width:680px){.grid2{grid-template-columns:1fr;}}
+
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:16px;}
+.panel-title{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-faint);margin:0 0 12px;display:flex;justify-content:space-between;align-items:center;}
+
+svg text{font-family:'IBM Plex Mono',monospace;}
+
+.readout{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:14px 0;}
+.stat{background:var(--panel2);border:1px solid var(--border);border-radius:4px;padding:8px 10px;}
+.stat .k{font-size:10px;color:var(--text-faint);letter-spacing:.05em;margin-bottom:3px;}
+.stat .v{font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:500;color:var(--text);}
+.stat .v.warn{color:var(--red);}
+.stat .v.ok{color:var(--green);}
+
+.badge{
+  display:inline-flex;align-items:center;gap:6px;font-family:'IBM Plex Mono',monospace;
+  font-size:11.5px;padding:6px 11px;border-radius:3px;letter-spacing:.03em;
+}
+.badge.ok{background:var(--green-bg);color:var(--green);border:1px solid var(--green-dim);}
+.badge.warn{background:var(--red-bg);color:var(--red);border:1px solid var(--red-dim);}
+.dot{width:6px;height:6px;border-radius:50%;background:currentColor;flex-shrink:0;}
+
+.slider-row{display:flex;align-items:center;gap:12px;margin:6px 0 4px;}
+.slider-row label{font-size:12.5px;color:var(--text-dim);white-space:nowrap;}
+input[type=range]{flex:1;accent-color:var(--trace);height:4px;}
+.slider-val{font-family:'IBM Plex Mono',monospace;font-size:14px;min-width:26px;text-align:right;color:var(--trace);}
+
+button.act{
+  width:100%;margin-top:12px;background:transparent;color:var(--trace);
+  border:1px solid var(--trace-dim);border-radius:4px;padding:10px 12px;
+  font-family:'IBM Plex Mono',monospace;font-size:12.5px;letter-spacing:.03em;cursor:pointer;
+  transition:background .15s;
+}
+button.act:hover{background:var(--amber-bg);}
+button.act:disabled{opacity:.35;cursor:not-allowed;}
+button.act.ghost{color:var(--text-dim);border-color:var(--border);}
+button.act.ghost:hover{background:var(--panel2);}
+
+.toggle-row{display:flex;align-items:center;justify-content:space-between;background:var(--panel2);border:1px solid var(--border);border-radius:4px;padding:9px 12px;margin:10px 0;}
+.toggle-row span{font-size:12.5px;color:var(--text-dim);}
+.switch{position:relative;width:38px;height:20px;background:var(--border);border-radius:10px;cursor:pointer;flex-shrink:0;}
+.switch::after{content:'';position:absolute;width:16px;height:16px;background:var(--text-faint);border-radius:50%;top:2px;left:2px;transition:.15s;}
+.switch.on{background:var(--green-dim);}
+.switch.on::after{left:20px;background:var(--green);}
+
+.note{font-size:12px;color:var(--text-dim);line-height:1.7;margin-top:10px;padding-top:10px;border-top:1px dashed var(--border);}
+.note b{color:var(--text);}
+
+.topo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;}
+@media(max-width:680px){.topo-grid{grid-template-columns:1fr;}}
+.topo-card{background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:10px;cursor:pointer;text-align:center;}
+.topo-card.sel{border-color:var(--trace);background:var(--panel2);}
+.topo-card .tname{font-size:12px;color:var(--text);margin-top:8px;}
+.topo-card .tdesc{font-size:10.5px;color:var(--text-faint);margin-top:2px;}
+
+.bar-row{display:grid;grid-template-columns:70px 1fr 50px;align-items:center;gap:8px;margin:7px 0;}
+.bar-row .lname{font-size:11.5px;color:var(--text-dim);}
+.bar-track{height:16px;background:var(--panel2);border-radius:3px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:3px;transition:width .35s ease;}
+.bar-row .lval{font-family:'IBM Plex Mono',monospace;font-size:11.5px;text-align:right;color:var(--text-dim);}
+
+.result-box{margin-top:14px;padding:12px 14px;border-radius:4px;border:1px solid var(--border);font-size:12.5px;line-height:1.7;display:none;}
+.result-box.show{display:block;}
+.result-box.good{border-color:var(--green-dim);background:var(--green-bg);color:var(--text);}
+.result-box.bad{border-color:var(--red-dim);background:var(--red-bg);color:var(--text);}
+
+.progress{display:flex;gap:5px;margin-top:22px;}
+.progress span{flex:1;height:3px;background:var(--border);border-radius:2px;}
+.progress span.done{background:var(--green);}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="hero">
+    <div class="hero-text">
+      <p class="eyebrow">EDA · Buffer Insertion Lab</p>
+      <h1>負載隔離與扇出優化實驗室</h1>
+      <p>透過三個關卡，用真實 RC 充電模型體會為什麼工程師要在訊號路徑上插入 Buffer——從波形變形、雜訊隔離，到時脈樹的 skew 平衡。</p>
+    </div>
+    <canvas class="hero-scope" id="heroScope" width="440" height="200"></canvas>
+  </div>
+
+  <div class="tabs" id="tabs">
+    <button class="tab active" data-level="1"><span class="num">01</span><span class="lbl">扇出與波形變形</span></button>
+    <button class="tab" data-level="2"><span class="num">02</span><span class="lbl">負載隔離</span></button>
+    <button class="tab" data-level="3"><span class="num">03</span><span class="lbl">Skew 平衡</span></button>
+  </div>
+
+  <div class="progress" id="progress"><span id="p1"></span><span id="p2"></span><span id="p3"></span></div>
+
+  <!-- LEVEL 1 -->
+  <div class="level active" id="level1" style="margin-top:22px;">
+    <div class="level-head">
+      <h2>關卡一 · 扇出增加，訊號為何變慢？</h2>
+      <div class="sub">拖動 Fanout 滑桿，觀察主線要「充電」的寄生電容總量如何隨負載數量增加，導致波形爬升變慢、延遲超出時序預算。當你觸發 TIMING VIOLATION 時，試著插入 Buffer 分攤負載。</div>
+    </div>
+    <div class="grid2">
+      <div class="panel">
+        <p class="panel-title">電路拓撲 Circuit</p>
+        <svg id="circuitSvg" viewBox="0 0 380 220" width="100%" height="220"></svg>
+        <div class="slider-row">
+          <label>Fanout N</label>
+          <input type="range" id="fanoutSlider" min="1" max="12" value="5" step="1">
+          <span class="slider-val" id="fanoutVal">5</span>
+        </div>
+      </div>
+      <div class="panel">
+        <p class="panel-title">示波器 Oscilloscope<span id="l1badge"></span></p>
+        <canvas id="scope1" width="440" height="150" style="width:100%;height:150px;"></canvas>
+        <div class="readout">
+          <div class="stat"><div class="k">C_total</div><div class="v mono" id="statC">—</div></div>
+          <div class="stat"><div class="k">τ = R·C</div><div class="v mono" id="statTau">—</div></div>
+          <div class="stat"><div class="k">Delay (50%)</div><div class="v mono" id="statDelay">—</div></div>
+          <div class="stat"><div class="k">Rise (10–90%)</div><div class="v mono" id="statRise">—</div></div>
+        </div>
+        <button class="act" id="insertBufBtn" disabled>插入 Buffer 分攤負載 → 星狀緩衝樹</button>
+        <button class="act ghost" id="resetBufBtn" style="display:none;">還原為單一主線驅動</button>
+      </div>
+    </div>
+    <div class="note" id="l1note">波形圖中的<b style="color:var(--red)">紅色曲線</b>是目前主線在給定 fanout 下的實際波形；<b style="color:var(--green)">綠色虛線</b>是理想的乾淨波形，作為對照基準。amber 虛線是邏輯閘判定 0/1 的 <b>0.5V 門檻</b>。</div>
+  </div>
+
+  <!-- LEVEL 2 -->
+  <div class="level" id="level2" style="margin-top:22px;">
+    <div class="level-head">
+      <h2>關卡二 · 一個吵鬧的負載，會拖累整條主線嗎？</h2>
+      <div class="sub">Load C 是個高速切換的匯流排（雜訊源），它的切換雜訊可能經由共用主線「倒灌」回去，干擾原本乖乖牌的 Load A。試試在沒有 Buffer 隔離、以及裝上專屬 Buffer 之後，分別觸發雜訊看看差別。</div>
+    </div>
+    <div class="grid2">
+      <div class="panel">
+        <p class="panel-title">電路拓撲 Circuit</p>
+        <svg id="isoSvg" viewBox="0 0 380 220" width="100%" height="220"></svg>
+        <div class="toggle-row">
+          <span>在 Load C 前插入專屬 Buffer</span>
+          <div class="switch" id="bufToggle"></div>
+        </div>
+        <button class="act" id="triggerNoiseBtn">觸發 Load C 切換雜訊 ⚡</button>
+      </div>
+      <div class="panel">
+        <p class="panel-title">示波器 Oscilloscope<span id="l2badge"></span></p>
+        <canvas id="scope2" width="440" height="150" style="width:100%;height:150px;"></canvas>
+        <div class="readout" style="grid-template-columns:1fr;">
+          <div class="stat"><div class="k">Load A（受害者）電壓擾動</div><div class="v mono" id="statNoise">尚未觸發</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="note" id="l2note"><b style="color:var(--blue)">藍色</b>是 Load C 自己的切換波形；<b style="color:var(--red)">紅色 / </b><b style="color:var(--green)">綠色</b>是 Load A 感受到的電壓——紅色代表被雜訊干擾，綠色代表被 Buffer 隔離後維持乾淨。</div>
+  </div>
+
+  <!-- LEVEL 3 -->
+  <div class="level" id="level3" style="margin-top:22px;">
+    <div class="level-head">
+      <h2>關卡三 · 哪一種拓撲讓訊號同時抵達？</h2>
+      <div class="sub">時脈樹最怕的不是「慢」，而是「不一致」——Skew（到達時間差）太大會讓正反器誤判。選一種拓撲，看看每個末端負載的到達時間分佈。</div>
+    </div>
+    <div class="topo-grid" id="topoGrid"></div>
+    <div class="panel">
+      <p class="panel-title">各負載到達時間 Arrival Time<span class="mono" id="skewLabel" style="color:var(--text-dim);font-weight:normal;"></span></p>
+      <div id="barChart"></div>
+      <div class="result-box" id="l3result"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const FONT_MONO = "IBM Plex Mono";
+
+function setupCanvas(cv){
+  const dpr = window.devicePixelRatio||1;
+  const w = cv.clientWidth || cv.width, h = cv.clientHeight || cv.height;
+  cv.width = w*dpr; cv.height = h*dpr;
+  const ctx = cv.getContext('2d');
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  return {ctx,w,h};
+}
+
+function drawScopeGrid(ctx,w,h,pad){
+  ctx.fillStyle = '#0c1119';
+  ctx.fillRect(0,0,w,h);
+  ctx.strokeStyle = 'rgba(133,146,166,0.08)';
+  ctx.lineWidth = 1;
+  for(let x=pad.l;x<=w-pad.r;x+=(w-pad.l-pad.r)/8){
+    ctx.beginPath();ctx.moveTo(x,pad.t);ctx.lineTo(x,h-pad.b);ctx.stroke();
+  }
+  for(let y=pad.t;y<=h-pad.b;y+=(h-pad.t-pad.b)/4){
+    ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(w-pad.r,y);ctx.stroke();
+  }
+}
+
+function heroScope(){
+  const cv=document.getElementById('heroScope');
+  const {ctx,w,h}=setupCanvas(cv);
+  let t0=performance.now();
+  function frame(now){
+    const el=(now-t0)/1000;
+    const pad={l:8,r:8,t:10,b:10};
+    drawScopeGrid(ctx,w,h,pad);
+    const plotW=w-pad.l-pad.r, plotH=h-pad.t-pad.b;
+    function curve(tau,color,dash){
+      ctx.beginPath();
+      ctx.strokeStyle=color; ctx.lineWidth=2; ctx.setLineDash(dash||[]);
+      for(let i=0;i<=100;i++){
+        const t=(i/100)*300;
+        const v=1-Math.exp(-t/tau);
+        const x=pad.l+(i/100)*plotW;
+        const y=pad.t+plotH-(v*plotH*0.85)-plotH*0.05;
+        if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+      }
+      ctx.stroke(); ctx.setLineDash([]);
+    }
+    curve(20,'#39ff8a',[]);
+    curve(70+30*Math.sin(el*0.6),'#ff5f56',[4,3]);
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+}
+heroScope();
+
+const TAU_DRIVER=28, TAU_BUFFER=10, BUF_PD=15, BUDGET=170;
+let l1BufferMode=false;
+
+function computeMain(n){
+  const tau=TAU_DRIVER*n;
+  return {tau, delay:0.693*tau, rise:2.197*tau, c:n*15};
+}
+function computeBranch(g){
+  const tau=TAU_BUFFER*g;
+  return {tau, delay:BUF_PD+0.693*tau, rise:2.197*tau, c:g*15};
+}
+
+function buildCircuitSvg(n, buffered){
+  const W=380,H=220;
+  const loadY = i=> 30 + i*((H-60)/Math.max(n-1,1));
+  let s = `<title>電路拓撲</title>`;
+  s += `<rect x="10" y="${H/2-16}" width="54" height="32" rx="3" fill="#141c28" stroke="#ffb454"/>`;
+  s += `<text x="37" y="${H/2+5}" text-anchor="middle" font-size="10.5" fill="#ffb454">DRV</text>`;
+  const loadsToDraw = Math.min(n,10);
+  if(!buffered){
+    s += `<line x1="64" y1="${H/2}" x2="100" y2="${H/2}" stroke="#8592a6" stroke-width="1.5"/>`;
+    for(let i=0;i<loadsToDraw;i++){
+      const y=loadY(i);
+      s += `<line x1="100" y1="${H/2}" x2="100" y2="${y}" stroke="#8592a6" stroke-width="1"/>`;
+      s += `<line x1="100" y1="${y}" x2="330" y2="${y}" stroke="#8592a6" stroke-width="1"/>`;
+      s += `<rect x="330" y="${y-9}" width="34" height="18" rx="2" fill="#141c28" stroke="#5ec8f2"/>`;
+      s += `<text x="347" y="${y+4}" text-anchor="middle" font-size="8.5" fill="#5ec8f2">L${i+1}</text>`;
+    }
+    if(n>10){ s += `<text x="347" y="${H-10}" text-anchor="middle" font-size="9" fill="#4d5868">+${n-10} more</text>`; }
+  } else {
+    const g1=Math.ceil(n/2), g2=n-g1;
+    const groups=[g1,g2].filter(x=>x>0);
+    const gy=[H*0.32,H*0.68];
+    s += `<line x1="64" y1="${H/2}" x2="120" y2="${H/2}" stroke="#8592a6" stroke-width="1.5"/>`;
+    groups.forEach((g,gi)=>{
+      const by=gy[gi];
+      s += `<line x1="120" y1="${H/2}" x2="120" y2="${by}" stroke="#8592a6" stroke-width="1"/>`;
+      s += `<line x1="120" y1="${by}" x2="150" y2="${by}" stroke="#8592a6" stroke-width="1"/>`;
+      s += `<rect x="150" y="${by-13}" width="34" height="26" rx="3" fill="#141c28" stroke="#39ff8a"/>`;
+      s += `<text x="167" y="${by+4}" text-anchor="middle" font-size="9" fill="#39ff8a">BUF</text>`;
+      const shown=Math.min(g,4);
+      for(let i=0;i<shown;i++){
+        const y=by-16+i*(32/Math.max(shown-1,1));
+        s += `<line x1="184" y1="${by}" x2="184" y2="${y}" stroke="#8592a6" stroke-width="0.8"/>`;
+        s += `<line x1="184" y1="${y}" x2="330" y2="${y}" stroke="#8592a6" stroke-width="0.8"/>`;
+        s += `<rect x="330" y="${y-8}" width="32" height="16" rx="2" fill="#141c28" stroke="#5ec8f2"/>`;
+        s += `<text x="346" y="${y+4}" text-anchor="middle" font-size="7.5" fill="#5ec8f2">L</text>`;
+      }
+      if(g>4){ s += `<text x="346" y="${by+30}" text-anchor="middle" font-size="8" fill="#4d5868">×${g}</text>`; }
+    });
+  }
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" height="220" role="img" aria-label="電路拓撲">${s}</svg>`;
+}
+
+function renderScope1(ctx,w,h,series,tMax){
+  const pad={l:34,r:10,t:14,b:22};
+  drawScopeGrid(ctx,w,h,pad);
+  const plotW=w-pad.l-pad.r, plotH=h-pad.t-pad.b;
+  ctx.strokeStyle='#ffb454'; ctx.setLineDash([3,3]); ctx.lineWidth=1;
+  const midY=pad.t+plotH-0.5*plotH*0.85-plotH*0.05;
+  ctx.beginPath();ctx.moveTo(pad.l,midY);ctx.lineTo(w-pad.r,midY);ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle='#ffb454'; ctx.font='9px IBM Plex Mono'; ctx.fillText('0.5V threshold',pad.l+4,midY-4);
+  series.forEach(s=>{
+    ctx.beginPath(); ctx.strokeStyle=s.color; ctx.lineWidth=2; ctx.setLineDash(s.dash||[]);
+    for(let i=0;i<=100;i++){
+      const t=(i/100)*tMax;
+      const v=1-Math.exp(-t/s.tau);
+      const x=pad.l+(i/100)*plotW;
+      const y=pad.t+plotH-(v*plotH*0.85)-plotH*0.05;
+      if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    }
+    ctx.stroke(); ctx.setLineDash([]);
+    const dx=pad.l+(s.delay/tMax)*plotW;
+    ctx.fillStyle=s.color;
+    ctx.beginPath(); ctx.arc(dx,midY,3,0,7); ctx.fill();
+  });
+  ctx.fillStyle='#4d5868'; ctx.font='9px IBM Plex Mono';
+  ctx.fillText('0',pad.l-2,h-6);
+  ctx.fillText(Math.round(tMax)+'ps',w-pad.r-24,h-6);
+}
+
+function updateLevel1(){
+  const n=+document.getElementById('fanoutSlider').value;
+  document.getElementById('fanoutVal').textContent=n;
+  document.getElementById('circuitSvg').outerHTML=buildCircuitSvg(n,l1BufferMode).replace('<svg','<svg id="circuitSvg"');
+  const badge=document.getElementById('l1badge');
+  const cv=document.getElementById('scope1');
+  const {ctx,w,h}=setupCanvas(cv);
+
+  if(!l1BufferMode){
+    const m=computeMain(n);
+    const violation = m.delay>BUDGET;
+    renderScope1(ctx,w,h,[
+      {tau:18,color:'#39ff8a',dash:[4,3],delay:0.693*18},
+      {tau:m.tau,color: violation?'#ff5f56':'#ffb454',dash:[],delay:m.delay}
+    ], Math.max(300,m.delay*1.4));
+    document.getElementById('statC').textContent=m.c+' fF';
+    document.getElementById('statTau').textContent=Math.round(m.tau)+' ps';
+    const dEl=document.getElementById('statDelay');
+    dEl.textContent=Math.round(m.delay)+' ps';
+    dEl.className='v mono '+(violation?'warn':'ok');
+    document.getElementById('statRise').textContent=Math.round(m.rise)+' ps';
+    badge.innerHTML = violation
+      ? `<span class="badge warn"><span class="dot"></span>TIMING VIOLATION</span>`
+      : `<span class="badge ok"><span class="dot"></span>MEETS TIMING</span>`;
+    document.getElementById('insertBufBtn').disabled=!violation;
+    document.getElementById('insertBufBtn').style.display='block';
+    document.getElementById('resetBufBtn').style.display='none';
+  } else {
+    const g1=Math.ceil(n/2), g2=n-g1;
+    const b1=computeBranch(g1), b2=computeBranch(g2||g1);
+    const worst=Math.max(b1.delay,b2.delay);
+    renderScope1(ctx,w,h,[
+      {tau:18,color:'#39ff8a',dash:[4,3],delay:0.693*18},
+      {tau:b1.tau,color:'#39ff8a',dash:[],delay:b1.delay},
+      {tau:b2.tau,color:'#5ec8f2',dash:[],delay:b2.delay}
+    ], Math.max(200,worst*1.6));
+    document.getElementById('statC').textContent=(g1*15)+' / '+(g2*15)+' fF';
+    document.getElementById('statTau').textContent=Math.round(b1.tau)+' / '+Math.round(b2.tau)+' ps';
+    const dEl=document.getElementById('statDelay');
+    dEl.textContent=Math.round(worst)+' ps';
+    dEl.className='v mono ok';
+    document.getElementById('statRise').textContent=Math.round(Math.max(b1.rise,b2.rise))+' ps';
+    badge.innerHTML=`<span class="badge ok"><span class="dot"></span>ISOLATION SUCCESSFUL</span>`;
+    document.getElementById('insertBufBtn').style.display='none';
+    document.getElementById('resetBufBtn').style.display='block';
+    document.getElementById('p1').classList.add('done');
+  }
+}
+document.getElementById('fanoutSlider').addEventListener('input',()=>{ l1BufferMode=false; updateLevel1(); });
+document.getElementById('insertBufBtn').addEventListener('click',()=>{ l1BufferMode=true; updateLevel1(); });
+document.getElementById('resetBufBtn').addEventListener('click',()=>{ l1BufferMode=false; updateLevel1(); });
+updateLevel1();
+
+function buildIsoSvg(bufOn){
+  const W=380,H=220;
+  let s='';
+  s += `<rect x="10" y="${H/2-16}" width="54" height="32" rx="3" fill="#141c28" stroke="#ffb454"/>`;
+  s += `<text x="37" y="${H/2+5}" text-anchor="middle" font-size="10.5" fill="#ffb454">DRV</text>`;
+  s += `<line x1="64" y1="${H/2}" x2="120" y2="${H/2}" stroke="#8592a6" stroke-width="1.5"/>`;
+  const rows=[[40,'A','#5ec8f2','受害者'],[110,'B','#5ec8f2',''],[180,'C','#5ec8f2','雜訊源']];
+  rows.forEach(([y,name,color,tag])=>{
+    s += `<line x1="120" y1="${H/2}" x2="120" y2="${y}" stroke="#8592a6" stroke-width="1"/>`;
+    if(name==='C' && bufOn){
+      s += `<line x1="120" y1="${y}" x2="250" y2="${y}" stroke="#8592a6" stroke-width="1"/>`;
+      s += `<rect x="250" y="${y-11}" width="34" height="22" rx="3" fill="#141c28" stroke="#39ff8a"/>`;
+      s += `<text x="267" y="${y+4}" text-anchor="middle" font-size="9" fill="#39ff8a">BUF</text>`;
+      s += `<line x1="284" y1="${y}" x2="330" y2="${y}" stroke="#8592a6" stroke-width="1"/>`;
+    } else {
+      s += `<line x1="120" y1="${y}" x2="330" y2="${y}" stroke="#8592a6" stroke-width="1"/>`;
+    }
+    s += `<rect x="330" y="${y-10}" width="40" height="20" rx="2" fill="#141c28" stroke="${color}"/>`;
+    s += `<text x="350" y="${y+4}" text-anchor="middle" font-size="9" fill="${color}">${name}</text>`;
+    if(tag) s += `<text x="330" y="${y-15}" font-size="8" fill="#4d5868">${tag}</text>`;
+  });
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" height="220" role="img" aria-label="負載隔離電路">${s}</svg>`;
+}
+
+let l2BufOn=false, l2Triggered=false, l2Glitched=false;
+
+function drawScope2(){
+  const cv=document.getElementById('scope2');
+  const {ctx,w,h}=setupCanvas(cv);
+  const pad={l:10,r:10,t:14,b:22};
+  drawScopeGrid(ctx,w,h,pad);
+  const plotW=w-pad.l-pad.r, plotH=h-pad.t-pad.b;
+  const baseY=pad.t+plotH*0.62;
+
+  function line(fn,color,dash){
+    ctx.beginPath(); ctx.strokeStyle=color; ctx.lineWidth=2; ctx.setLineDash(dash||[]);
+    for(let i=0;i<=200;i++){
+      const x=pad.l+(i/200)*plotW;
+      const y=fn(i/200);
+      if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    }
+    ctx.stroke(); ctx.setLineDash([]);
+  }
+  line(t=>baseY,'#3a4658',[]);
+
+  const glitchCenter=0.45, glitchW=0.05;
+  line(t=>{
+    let y=baseY;
+    if(l2Triggered && Math.abs(t-glitchCenter)<glitchW) y=baseY-plotH*0.32;
+    return y;
+  },'#5ec8f2',[]);
+
+  line(t=>{
+    let y=baseY-plotH*0.5;
+    if(l2Triggered && l2Glitched && Math.abs(t-glitchCenter)<glitchW*1.6){
+      const local=(t-glitchCenter)/(glitchW*1.6);
+      y -= plotH*0.14*Math.exp(-local*local*6)* (1-2*Math.abs(local));
+    }
+    return y;
+  }, l2Triggered ? (l2Glitched?'#ff5f56':'#39ff8a') : '#39ff8a',[]);
+
+  ctx.font='9px IBM Plex Mono';
+  ctx.fillStyle='#5ec8f2'; ctx.fillText('Load C（雜訊源）',pad.l+4,baseY+14);
+  ctx.fillStyle= l2Triggered ? (l2Glitched?'#ff5f56':'#39ff8a') : '#39ff8a';
+  ctx.fillText('Load A（受害者）',pad.l+4,baseY-plotH*0.5-8);
+}
+
+function updateLevel2(){
+  document.getElementById('isoSvg').outerHTML=buildIsoSvg(l2BufOn).replace('<svg','<svg id="isoSvg"');
+  document.getElementById('bufToggle').classList.toggle('on',l2BufOn);
+  const badge=document.getElementById('l2badge');
+  if(!l2Triggered){
+    badge.innerHTML='';
+    document.getElementById('statNoise').textContent='尚未觸發';
+    document.getElementById('statNoise').className='v mono';
+  } else {
+    badge.innerHTML = l2Glitched
+      ? `<span class="badge warn"><span class="dot"></span>NOISE COUPLED</span>`
+      : `<span class="badge ok"><span class="dot"></span>ISOLATED</span>`;
+    const s=document.getElementById('statNoise');
+    if(l2Glitched){ s.textContent='偵測到 ±140mV 尖峰擾動 → 可能誤觸發下一級邏輯'; s.className='v mono warn'; }
+    else { s.textContent='0mV（Buffer 完全阻擋雜訊倒灌）'; s.className='v mono ok'; }
+    if(l2BufOn && !l2Glitched) document.getElementById('p2').classList.add('done');
+  }
+  drawScope2();
+}
+document.getElementById('bufToggle').addEventListener('click',()=>{
+  l2BufOn=!l2BufOn; l2Triggered=false; l2Glitched=false; updateLevel2();
+});
+document.getElementById('triggerNoiseBtn').addEventListener('click',()=>{
+  l2Triggered=true; l2Glitched=!l2BufOn; updateLevel2();
+});
+updateLevel2();
+
+const TOPOS=[
+  {id:'a',name:'不對稱扇出',desc:'直驅 + 單邊掛 Buffer',leaves:[
+    {n:'L1',t:48},{n:'L2',t:96},{n:'L3',t:96}
+  ]},
+  {id:'b',name:'星狀緩衝樹',desc:'每個負載專屬同款 Buffer',leaves:[
+    {n:'L1',t:82},{n:'L2',t:80},{n:'L3',t:81}
+  ]},
+  {id:'c',name:'串接鏈',desc:'Buffer 一路 daisy-chain',leaves:[
+    {n:'L1',t:40},{n:'L2',t:80},{n:'L3',t:120},{n:'L4',t:158}
+  ]}
+];
+let selTopo='a', l3Answered=false;
+
+function topoSvg(id){
+  const W=110,H=70;
+  if(id==='a'){
+    return `<svg viewBox="0 0 ${W} ${H}"><rect x="4" y="28" width="20" height="14" rx="2" fill="#141c28" stroke="#ffb454"/>
+      <line x1="24" y1="35" x2="45" y2="14" stroke="#8592a6"/><line x1="24" y1="35" x2="45" y2="35" stroke="#8592a6"/>
+      <rect x="45" y="28" width="18" height="14" rx="2" fill="#141c28" stroke="#39ff8a"/>
+      <line x1="45" y1="14" x2="95" y2="14" stroke="#8592a6"/><circle cx="95" cy="14" r="3" fill="#5ec8f2"/>
+      <line x1="63" y1="35" x2="80" y2="24" stroke="#8592a6"/><circle cx="80" cy="24" r="3" fill="#5ec8f2"/>
+      <line x1="63" y1="35" x2="80" y2="46" stroke="#8592a6"/><circle cx="80" cy="46" r="3" fill="#5ec8f2"/></svg>`;
+  }
+  if(id==='b'){
+    return `<svg viewBox="0 0 ${W} ${H}"><rect x="2" y="28" width="18" height="14" rx="2" fill="#141c28" stroke="#ffb454"/>
+      <line x1="20" y1="35" x2="34" y2="35" stroke="#8592a6"/>
+      <line x1="34" y1="12" x2="34" y2="58" stroke="#8592a6"/>
+      ${[12,35,58].map(y=>`<line x1="34" y1="${y}" x2="46" y2="${y}" stroke="#8592a6"/><rect x="46" y="${y-6}" width="16" height="12" rx="2" fill="#141c28" stroke="#39ff8a"/><line x1="62" y1="${y}" x2="90" y2="${y}" stroke="#8592a6"/><circle cx="90" cy="${y}" r="3" fill="#5ec8f2"/>`).join('')}
+      </svg>`;
+  }
+  return `<svg viewBox="0 0 ${W} ${H}"><rect x="2" y="28" width="16" height="14" rx="2" fill="#141c28" stroke="#ffb454"/>
+    ${[0,1,2,3].map(i=>{const x=20+i*22;return `<line x1="${x}" y1="35" x2="${x+16}" y2="35" stroke="#8592a6"/><rect x="${x+16}" y="28" width="14" height="14" rx="2" fill="#141c28" stroke="#39ff8a"/><line x1="${x+23}" y1="42" x2="${x+23}" y2="55" stroke="#8592a6"/><circle cx="${x+23}" cy="55" r="3" fill="#5ec8f2"/>`}).join('')}
+    </svg>`;
+}
+
+function renderTopoGrid(){
+  const el=document.getElementById('topoGrid');
+  el.innerHTML = TOPOS.map(t=>`
+    <div class="topo-card ${t.id===selTopo?'sel':''}" data-id="${t.id}">
+      ${topoSvg(t.id)}
+      <div class="tname">${t.name}</div>
+      <div class="tdesc">${t.desc}</div>
+    </div>`).join('');
+  el.querySelectorAll('.topo-card').forEach(c=>{
+    c.addEventListener('click',()=>{ selTopo=c.dataset.id; renderTopoGrid(); renderBars(); });
+  });
+}
+
+function renderBars(){
+  const t=TOPOS.find(x=>x.id===selTopo);
+  const times=t.leaves.map(l=>l.t);
+  const skew=Math.max(...times)-Math.min(...times);
+  document.getElementById('skewLabel').textContent = ' skew = '+skew+' ps';
+  const maxT=Math.max(...TOPOS.flatMap(x=>x.leaves.map(l=>l.t)))*1.1;
+  document.getElementById('barChart').innerHTML = t.leaves.map(l=>{
+    const pct=(l.t/maxT)*100;
+    const color = skew<=10 ? '#39ff8a' : (skew<=60?'#ffb454':'#ff5f56');
+    return `<div class="bar-row"><div class="lname mono">${l.n}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${color};"></div></div>
+      <div class="lval">${l.t}ps</div></div>`;
+  }).join('');
+
+  const box=document.getElementById('l3result');
+  if(l3Answered){
+    const isBest = selTopo==='b';
+    box.className='result-box show '+(isBest?'good':'bad');
+    box.innerHTML = isBest
+      ? `<b>正確判斷。</b>星狀緩衝樹讓每個負載都經過一顆規格相同的專屬 Buffer，路徑深度與驅動強度一致，skew 趨近於 0——這正是時脈樹最在意的特性，即使多花一點面積也值得。`
+      : `<b>這個拓撲的 skew 較大。</b>${selTopo==='a'?'不對稱扇出讓 L1 少經過一級 Buffer，比 L2/L3 早到，造成時序不平衡。':'串接鏈上每多一級 Buffer 就多一份延遲，越後面的負載到得越晚。'}試著切換到「星狀緩衝樹」比較看看 skew 的差異。`;
+    document.getElementById('p3').classList.add('done');
+  } else {
+    box.className='result-box';
+  }
+}
+
+document.getElementById('barChart').addEventListener('click',()=>{});
+renderTopoGrid(); renderBars();
+document.getElementById('topoGrid').insertAdjacentHTML('afterend','');
+
+const l3CheckBtn = document.createElement('button');
+l3CheckBtn.className='act';
+l3CheckBtn.textContent='這是 Skew 最小的拓撲嗎？揭曉答案';
+l3CheckBtn.style.marginBottom='4px';
+document.getElementById('topoGrid').insertAdjacentElement('afterend', l3CheckBtn);
+l3CheckBtn.addEventListener('click',()=>{ l3Answered=true; renderBars(); });
+
+document.getElementById('tabs').addEventListener('click',e=>{
+  const btn=e.target.closest('.tab'); if(!btn) return;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.level').forEach(l=>l.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('level'+btn.dataset.level).classList.add('active');
+});
+</script>
+</body>
+</html>
