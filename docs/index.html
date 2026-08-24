@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Circuit Learning Lab｜報告整合首頁</title>
+  <style>
+    :root {
+      --bg: #0b1020;
+      --card: #121a33;
+      --text: #e9eefc;
+      --muted: #b4c0e0;
+      --accent: #7aa2ff;
+      --accent-2: #5eead4;
+      --border: #27345f;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Noto Sans TC", "Segoe UI", Roboto, Arial, sans-serif;
+      background: radial-gradient(1200px 600px at 20% -20%, #1a2450 0%, var(--bg) 50%);
+      color: var(--text);
+      line-height: 1.6;
+    }
+    .container {
+      width: min(960px, 92%);
+      margin: 48px auto 64px;
+    }
+    h1 {
+      margin: 0 0 10px;
+      font-size: clamp(1.8rem, 3vw, 2.4rem);
+    }
+    .subtitle {
+      margin: 0 0 28px;
+      color: var(--muted);
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px;
+    }
+    .card {
+      background: linear-gradient(180deg, #151f3f 0%, var(--card) 100%);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px;
+      transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+    }
+    .card:hover {
+      transform: translateY(-3px);
+      border-color: var(--accent);
+      box-shadow: 0 10px 24px rgba(0,0,0,.25);
+    }
+    .card h2 {
+      margin: 0 0 8px;
+      font-size: 1.15rem;
+    }
+    .card p {
+      margin: 0 0 14px;
+      color: var(--muted);
+      font-size: .96rem;
+    }
+    .btn {
+      display: inline-block;
+      text-decoration: none;
+      color: #08112f;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      padding: 8px 12px;
+      border-radius: 10px;
+      font-weight: 700;
+    }
+    footer {
+      margin-top: 28px;
+      color: var(--muted);
+      font-size: .9rem;
+    }
+    code { color: #b6f4ff; }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <h1>⚡ Circuit Learning Lab</h1>
+    <p class="subtitle">
+      負載隔離與扇出優化實驗室：用真實 RC 充電模型理解 Buffer insertion、雜訊隔離與時脈樹 skew 平衡。
+    </p>
+
+    <section class="grid">
+      <article class="card">
+        <h2>Buffer Insertion Lab</h2>
+        <p>觀察扇出增加造成的延遲與波形劣化，理解為何要插入 Buffer。</p>
+        <a class="btn" href="./buffer-insertion.html">查看報告</a>
+      </article>
+
+      <article class="card">
+        <h2>RC Charging 筆記</h2>
+        <p>從 RC 充電曲線理解節點電壓建立時間與訊號傳播特性。</p>
+        <a class="btn" href="./rc-charging.html">查看報告</a>
+      </article>
+
+      <article class="card">
+        <h2>Clock Tree Skew Balance</h2>
+        <p>透過路徑與負載平衡，掌握時脈樹 skew 的控制概念。</p>
+        <a class="btn" href="./skew-balance.html">查看報告</a>
+      </article>
+    </section>
+
+    <footer>
+      GitHub Pages source: <code>main /docs</code>
+    </footer>
+  </main>
+</body>
+</html>
